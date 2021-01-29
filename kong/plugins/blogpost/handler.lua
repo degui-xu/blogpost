@@ -11,3 +11,8 @@ function TokenHandler:access(conf)
     TokenHandler.super.access(self)
     access.run(conf)
 end
+
+TokenHandler.VERSION = "1.0"
+TokenHandler.PRIORITY = 1000
+
+return TokenHandler
