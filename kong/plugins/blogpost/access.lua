@@ -1,4 +1,4 @@
-local _M = { conf = {} }
+local _M = {}
 local http = require "resty.http"
 local utils = require "kong.tools.utils"
 
@@ -10,10 +10,10 @@ function _M.error_response(message, status)
     ngx.exit(status)
 end
 
-function _M.introspect_access_token(access_token, customer_id)
+function _M.introspect_access_token(conf, access_token, customer_id)
     local httpc = http:new()
     -- step 1: validate the token
-    local res, _ = httpc:request_uri(_M.conf.introspection_endpoint, {
+    local res, _ = httpc:request_uri(conf.introspection_endpoint, {
         method = "POST",
         ssl_verify = false,
         headers = { ["Content-Type"] = "application/x-www-form-urlencoded",
@@ -28,7 +28,7 @@ function _M.introspect_access_token(access_token, customer_id)
     end
 
     -- step 2: validate the customer access rights
-    local res, _ = httpc:request_uri(_M.conf.authorization_endpoint, {
+    local res, _ = httpc:request_uri(conf.authorization_endpoint, {
         method = "POST",
         ssl_verify = false,
         body = '{ "custId":"' .. customer_id .. '"}',
@@ -48,8 +48,7 @@ function _M.introspect_access_token(access_token, customer_id)
 end
 
 function _M.run(conf)
-    _M.conf = conf
-    local access_token = ngx.req.get_headers()[_M.conf.token_header]
+    local access_token = ngx.req.get_headers()[conf.token_header]
     if not access_token then
         _M.error_response("Unauthenticated.", ngx.HTTP_UNAUTHORIZED)
     end
@@ -59,7 +58,7 @@ function _M.run(conf)
     local values = utils.split(request_path, "/")
     local customer_id = values[3]
 
-    local res = _M.introspect_access_token(access_token, customer_id)
+    local res = _M.introspect_access_token(conf, access_token, customer_id)
     if not res then
         _M.error_response("Authorization server error.", ngx.HTTP_INTERNAL_SERVER_ERROR)
     end
@@ -67,7 +66,7 @@ function _M.run(conf)
         _M.error_response("The resource owner or authorization server denied the request.", ngx.HTTP_UNAUTHORIZED)
     end
 
-    ngx.req.clear_header(_M.conf.token_header)
+    ngx.req.clear_header(conf.token_header)
 end
 
 return _M
