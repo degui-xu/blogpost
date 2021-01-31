@@ -24,7 +24,7 @@ local function introspect_access_token(conf, access_token, customer_id)
   end
   if res.status ~= 200 then
       kong.log.err("introspection endpoint responded with status: ",res.status)
-      return kong.response.exit(500)
+      return kong.response.exit(res.status)
   end
 
   -- step 2: validate the customer access rights
@@ -42,7 +42,7 @@ local function introspect_access_token(conf, access_token, customer_id)
   end
   if res.status ~= 200 then
       kong.log.err("authorization endpoint responded with status: ",res.status)
-      return kong.response.exit(500)
+      return kong.response.exit(res.status)
   end
 
   return true -- all is well
@@ -61,7 +61,7 @@ function TokenHandler:access(conf)
 
   introspect_access_token(conf, access_token, customer_id)
 
-  kong.service.clear_header(conf.token_header)
+  kong.service.request.clear_header(conf.token_header)
 end
 
 
